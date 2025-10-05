@@ -6,19 +6,30 @@
     <title>HIRO Marker Unity-Chan</title>
     <script src="https://cdn.jsdelivr.net/gh/aframevr/aframe@1c2407b26c61958baa93967b5412487cd94b290b/dist/aframe-master.min.js"></script>
     <script src="https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar-nft.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@v6.1.1/dist/aframe-extras.loaders.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.6.0/dist/aframe-extras.min.js"></script>
   </head>
   <body style="margin: 0; overflow: hidden;">
     <a-scene embedded arjs="sourceType: webcam;">
       <a-assets>
-        <a-asset-item id="unitychan" src="unitychan.fbx"></a-asset-item>
+        <a-asset-item
+          id="buddymodel"
+          src="https://cdn.jsdelivr.net/gh/KhronosGroup/glTF-Sample-Assets@main/Models/CesiumMan/glTF-Binary/CesiumMan.glb"
+        ></a-asset-item>
       </a-assets>
       <a-marker preset="hiro">
+        <a-box
+          position="0 0.5 0"
+          depth="0.3"
+          height="0.3"
+          width="0.3"
+          color="#4CC3D9"
+          animation="property: rotation; to: 0 360 0; loop: true; dur: 4000; easing: linear"
+        ></a-box>
         <a-entity
-          fbx-model="#unitychan"
+          gltf-model="#buddymodel"
           position="0 0 0"
-          rotation="0 0 0"
-          scale="0.125 0.125 0.125"
+          rotation="0 180 0"
+          scale="0.5 0.5 0.5"
         ></a-entity>
       </a-marker>
       <a-entity camera></a-entity>
