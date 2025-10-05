@@ -20,7 +20,7 @@
         <a-entity
           id="cesium-entity"
           gltf-model="#buddymodel"
-          animation-mixer="timeScale: 0"
+          animation-mixer=""
           position="0 0 0"
           rotation="0 0 0"
           scale="0.5 0.5 0.5"
@@ -28,125 +28,5 @@
       </a-marker>
       <a-entity camera></a-entity>
     </a-scene>
-    <script>
-      document.addEventListener("DOMContentLoaded", () => {
-        const modelEl = document.querySelector("#cesium-entity");
-        const THRESHOLD = 0.05;
-        let isPlaying = false;
-
-        const updateAnimationState = (shouldPlay) => {
-          if (!modelEl) {
-            return;
-          }
-
-          const mixerComponent = modelEl.components["animation-mixer"];
-          if (!mixerComponent || !mixerComponent.mixer) {
-            return;
-          }
-
-          if (isPlaying === shouldPlay) {
-            return;
-          }
-
-          mixerComponent.mixer.timeScale = shouldPlay ? 1 : 0;
-          isPlaying = shouldPlay;
-        };
-
-        const monitorAudio = async () => {
-          try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const source = audioContext.createMediaStreamSource(stream);
-            const analyser = audioContext.createAnalyser();
-            analyser.fftSize = 2048;
-            const dataArray = new Uint8Array(analyser.fftSize);
-            source.connect(analyser);
-
-            const analyse = () => {
-              analyser.getByteTimeDomainData(dataArray);
-              let sum = 0;
-              for (let i = 0; i < dataArray.length; i += 1) {
-                const value = (dataArray[i] - 128) / 128;
-                sum += value * value;
-              }
-              const rms = Math.sqrt(sum / dataArray.length);
-              updateAnimationState(rms > THRESHOLD);
-              requestAnimationFrame(analyse);
-            };
-
-            analyse();
-          } catch (error) {
-            console.error("マイクの取得に失敗しました", error);
-          }
-        };
-
-        const initialize = () => {
-          updateAnimationState(false);
-          monitorAudio();
-
-          const SpeechRecognition =
-            window.SpeechRecognition || window.webkitSpeechRecognition;
-          if (SpeechRecognition) {
-            try {
-              const recognition = new SpeechRecognition();
-              let restartTimeoutId = null;
-              let isRecognizing = false;
-
-              const scheduleRestart = () => {
-                if (restartTimeoutId) {
-                  clearTimeout(restartTimeoutId);
-                }
-                restartTimeoutId = window.setTimeout(() => {
-                  if (!isRecognizing) {
-                    try {
-                      recognition.start();
-                    } catch (error) {
-                      if (error.name === "InvalidStateError") {
-                        scheduleRestart();
-                      } else {
-                        console.error("音声認識の再開に失敗しました", error);
-                      }
-                    }
-                  }
-                }, 500);
-              };
-
-              recognition.continuous = true;
-              recognition.interimResults = true;
-              recognition.onresult = () => {};
-              recognition.onstart = () => {
-                isRecognizing = true;
-              };
-              recognition.onend = () => {
-                isRecognizing = false;
-                scheduleRestart();
-              };
-              recognition.onerror = (event) => {
-                console.error("音声認識エラー", event.error);
-                isRecognizing = false;
-                if (
-                  event.error !== "not-allowed" &&
-                  event.error !== "service-not-allowed"
-                ) {
-                  scheduleRestart();
-                }
-              };
-
-              recognition.start();
-            } catch (error) {
-              console.error("音声認識の開始に失敗しました", error);
-            }
-          } else {
-            console.warn("このブラウザはWeb Speech APIに対応していません");
-          }
-        };
-
-        if (modelEl.hasLoaded) {
-          initialize();
-        } else {
-          modelEl.addEventListener("model-loaded", initialize, { once: true });
-        }
-      });
-    </script>
   </body>
 </html>
