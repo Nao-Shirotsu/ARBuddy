@@ -18,6 +18,7 @@
       </a-assets>
       <a-marker preset="hiro">
         <a-entity
+          id="cesium-entity"
           gltf-model="#buddymodel"
           animation-mixer=""
           position="0 0 0"
@@ -27,5 +28,28 @@
       </a-marker>
       <a-entity camera></a-entity>
     </a-scene>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const sceneEl = document.querySelector("a-scene");
+        const modelEl = document.querySelector("#cesium-entity");
+        let isPlaying = true;
+
+        const toggleAnimation = () => {
+          if (!modelEl) {
+            return;
+          }
+
+          const mixerComponent = modelEl.components["animation-mixer"];
+          if (!mixerComponent || !mixerComponent.mixer) {
+            return;
+          }
+
+          mixerComponent.mixer.timeScale = isPlaying ? 0 : 1;
+          isPlaying = !isPlaying;
+        };
+
+        sceneEl.addEventListener("click", toggleAnimation);
+      });
+    </script>
   </body>
 </html>
