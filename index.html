@@ -89,49 +89,19 @@
           if (SpeechRecognition) {
             try {
               const recognition = new SpeechRecognition();
-              let restartTimeoutId = null;
-              let isRecognizing = false;
-
-              const scheduleRestart = () => {
-                if (restartTimeoutId) {
-                  clearTimeout(restartTimeoutId);
-                }
-                restartTimeoutId = window.setTimeout(() => {
-                  if (!isRecognizing) {
-                    try {
-                      recognition.start();
-                    } catch (error) {
-                      if (error.name === "InvalidStateError") {
-                        scheduleRestart();
-                      } else {
-                        console.error("音声認識の再開に失敗しました", error);
-                      }
-                    }
-                  }
-                }, 500);
-              };
-
               recognition.continuous = true;
               recognition.interimResults = true;
               recognition.onresult = () => {};
-              recognition.onstart = () => {
-                isRecognizing = true;
-              };
-              recognition.onend = () => {
-                isRecognizing = false;
-                scheduleRestart();
-              };
               recognition.onerror = (event) => {
                 console.error("音声認識エラー", event.error);
-                isRecognizing = false;
-                if (
-                  event.error !== "not-allowed" &&
-                  event.error !== "service-not-allowed"
-                ) {
-                  scheduleRestart();
+              };
+              recognition.onend = () => {
+                try {
+                  recognition.start();
+                } catch (error) {
+                  console.error("音声認識の再開に失敗しました", error);
                 }
               };
-
               recognition.start();
             } catch (error) {
               console.error("音声認識の開始に失敗しました", error);
