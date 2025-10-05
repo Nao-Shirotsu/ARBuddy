@@ -31,6 +31,7 @@
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const modelEl = document.querySelector("#cesium-entity");
+        const THRESHOLD = 0.05;
         let isPlaying = false;
 
         const updateAnimationState = (shouldPlay) => {
@@ -51,8 +52,38 @@
           isPlaying = shouldPlay;
         };
 
+        const monitorAudio = async () => {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const source = audioContext.createMediaStreamSource(stream);
+            const analyser = audioContext.createAnalyser();
+            analyser.fftSize = 2048;
+            const dataArray = new Uint8Array(analyser.fftSize);
+            source.connect(analyser);
+
+            const analyse = () => {
+              analyser.getByteTimeDomainData(dataArray);
+              let sum = 0;
+              for (let i = 0; i < dataArray.length; i += 1) {
+                const value = (dataArray[i] - 128) / 128;
+                sum += value * value;
+              }
+              const rms = Math.sqrt(sum / dataArray.length);
+              updateAnimationState(rms > THRESHOLD);
+              requestAnimationFrame(analyse);
+            };
+
+            analyse();
+          } catch (error) {
+            console.error("マイクの取得に失敗しました", error);
+          }
+        };
+
         const initialize = () => {
           updateAnimationState(false);
+          monitorAudio();
+
           const SpeechRecognition =
             window.SpeechRecognition || window.webkitSpeechRecognition;
           if (SpeechRecognition) {
@@ -60,44 +91,7 @@
               const recognition = new SpeechRecognition();
               recognition.continuous = true;
               recognition.interimResults = true;
-              let speakTimeoutId = null;
-              const triggerGreeting = () => {
-                speakTimeoutId = null;
-                if (!window.speechSynthesis) {
-                  console.warn("このブラウザは音声合成に対応していません");
-                  return;
-                }
-
-                window.speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance("こんにちはマスター");
-                utterance.lang = "ja-JP";
-                utterance.onstart = () => {
-                  updateAnimationState(true);
-                };
-                const stopAnimation = () => {
-                  updateAnimationState(false);
-                };
-                utterance.onend = stopAnimation;
-                utterance.onerror = stopAnimation;
-                window.speechSynthesis.speak(utterance);
-              };
-
-              recognition.onresult = (event) => {
-                const { results } = event;
-                if (!results || results.length === 0) {
-                  return;
-                }
-
-                const latestResult = results[results.length - 1];
-                if (!latestResult.isFinal) {
-                  return;
-                }
-
-                if (speakTimeoutId) {
-                  clearTimeout(speakTimeoutId);
-                }
-                speakTimeoutId = setTimeout(triggerGreeting, 500);
-              };
+              recognition.onresult = () => {};
               recognition.onerror = (event) => {
                 console.error("音声認識エラー", event.error);
               };
